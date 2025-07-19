@@ -437,13 +437,11 @@ start // Automatic Timer Starting
         if(settings["StNG"] && current.Area == "cine_plane_crash")
         {
             vars.DebugPrint("Started timer at 'New Game' (Timer started at 00:00 IGT).");
-            return TimeSpan.FromSeconds(00);
             return true;
         }
         if(settings["StCo"] && current.Area == "dd_day_of_the_dead_010")
         {
             vars.DebugPrint("Started timer at 'dd_day_of_the_dead_010' (Timer started at 05:20).");
-            return TimeSpan.FromSeconds(320); // 05:20 (5 * 60 + 20)
             return true;
         }
     }
@@ -514,6 +512,15 @@ reset
         vars.DebugPrint("Reset at Main Menu.");
         return true;
     }
+}
+
+gameTime // For setting the Game Timer
+{
+  if(current.Loading && settings["StCo"] && current.Area == "dd_day_of_the_dead_010" && !vars.GameTimeSet)
+  {
+    vars.GameTimeSet = true;
+    return TimeSpan.FromSeconds(320); // 05:20 (5 * 60 + 20)
+  }
 }
 
 isLoading
