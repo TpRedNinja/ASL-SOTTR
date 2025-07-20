@@ -428,81 +428,83 @@ onStart
 
 start // Automatic Timer Starting
 {
-    vars.Jaguar = false;
-    vars.AmaruStart = false;
-    vars.BreakGlass = false;
-    vars.LavaSwim = false;
-    if(current.Loading)
+  vars.Jaguar = false;
+  vars.AmaruStart = false;
+  vars.BreakGlass = false;
+  vars.LavaSwim = false;
+  if(current.Loading)
+  {
+    if(settings["StNG"] && current.Area == "cine_plane_crash")
     {
-        if(settings["StNG"] && current.Area == "cine_plane_crash")
-        {
-            vars.DebugPrint("Started timer at 'New Game' (Timer started at 00:00 IGT).");
-            return true;
-        }
-        if(settings["StCo"] && current.Area == "dd_day_of_the_dead_010")
-        {
-            vars.DebugPrint("Started timer at 'dd_day_of_the_dead_010' (Timer started at 05:20).");
-            return true;
-        }
+      vars.DebugPrint("Started timer at 'New Game' (Timer started at 00:00 IGT).");
+      return true;
     }
+    if(settings["StCo"] && current.Area == "dd_day_of_the_dead_010")
+    {
+      vars.DebugPrint("Started timer at 'dd_day_of_the_dead_010' (Timer started at 05:20).");
+      return true;
+    }
+  }
 }
 
 split
 {
-    if (current.Area != old.Area && settings.ContainsKey(current.Area) && settings[current.Area] && vars.TrySplit(current.Area)) // Check if the Area has changed & Check if the corresponding setting is active
+  if (current.Area != old.Area && settings.ContainsKey(current.Area) && settings[current.Area] && vars.TrySplit(current.Area)) // Check if the Area has changed & Check if the corresponding setting is active
+  {
+    return true;
+  }
+
+  // Extra cutscene splits
+  var extraSplits = new List<Tuple<string, uint, string>> {
+    Tuple.Create("Jaguar", 589316655u, "Jaguar"),
+    Tuple.Create("AmaruStart", 318879157u, "AmaruStart"),
+    Tuple.Create("BreakGlass", 4098904675u, "BreakGlass"),
+    Tuple.Create("LavaSwim", 2526376290u, "LavaSwim")
+  };
+
+  foreach(var split in extraSplits)
+  {
+    var id = split.Item1;
+    var cutscene = split.Item2;
+    var flag = split.Item3;
+
+    if (current.Cutscene == cutscene && old.Cutscene == 0 && vars[flag] == false && settings[id])
     {
-        return true;
+      vars[flag] = true;
+      return true;
     }
+  }
 
-    // Extra cutscene splits
-    var extraSplits = new List<Tuple<string, uint, string>> {
-        Tuple.Create("Jaguar", 589316655u, "Jaguar"),
-        Tuple.Create("AmaruStart", 318879157u, "AmaruStart"),
-        Tuple.Create("BreakGlass", 4098904675u, "BreakGlass"),
-        Tuple.Create("LavaSwim", 2526376290u, "LavaSwim")
-    };
+  if(current.Area == "ch_chamber_of_heaven" && (current.Cutscene != old.Cutscene) && current.Cutscene == 4048785033 && settings["End"])
+  {
+    vars.DebugPrint("Split at End Cutscene, id: " + current.Cutscene.ToString() + " at: " + current.Area);
+    return true;
+  }
+      
 
-    foreach(var split in extraSplits)
+  foreach(var item in vars.Collectibles)
+  {
+    foreach(var item2 in item.Value)
     {
-        var id = split.Item1;
-        var cutscene = split.Item2;
-        var flag = split.Item3;
-
-        if (current.Cutscene == cutscene && old.Cutscene == 0 && vars[flag] == false && settings[id])
-        {
-            vars[flag] = true;
+      var V = vars.Watchers[item.Key + item2.Key];
+      if(V.Current != V.Old)
+      {
+        if(settings[item.Key + item2.Key + "All"])
+          if(V.Current == item2.Value[1])
+          {
+            vars.DebugPrint("Collected all collectibles of type '" + item2.Key + "' in '" + item.Key + "'");
             return true;
-        }
-    }
-
-    if(current.Area == "ch_chamber_of_heaven" && (current.Cutscene != old.Cutscene) && current.Cutscene == 4048785033 && settings["End"])
-    {
-        vars.DebugPrint("Split at End Cutscene, id: " + current.Cutscene.ToString() + " at: " + current.Area);
-        return true;
-    }
-        
-
-    foreach(var item in vars.Collectibles)
-    {
-        foreach(var item2 in item.Value)
+          }
+          else
+            return false;
+        if(settings[item.Key + item2.Key + "Each"])
         {
-            var V = vars.Watchers[item.Key + item2.Key];
-            if(V.Current == V.Old)
-                continue; // Skip if nothing changed
-
-            if(settings[item.Key + item2.Key + "All"] && V.Current == item2.Value[1])
-            {
-                vars.DebugPrint("Collected all collectibles of type '" + item2.Key + "' in '" + item.Key + "'");
-                return true;
-            }
-
-            if(settings[item.Key + item2.Key + "Each"])
-            {
-                vars.DebugPrint("Collected collectible of type '" + item2.Key + "' in '" + item.Key + "'");
-                return true;
-            }
+          vars.DebugPrint("Collected collectible of type '" + item2.Key + "' in '" + item.Key + "'");
+          return true;
         }
+      }
     }
+  }
 }
 
 reset
@@ -516,11 +518,11 @@ reset
 
 gameTime // For setting the Game Timer
 {
-  if(current.Loading && settings["StCo"] && current.Area == "dd_day_of_the_dead_010" && !vars.GameTimeSet)
-  {
-    vars.GameTimeSet = true;
-    return TimeSpan.FromSeconds(320); // 05:20 (5 * 60 + 20)
-  }
+    if(current.Loading && settings["StCo"] && current.Area == "dd_day_of_the_dead_010" && !vars.GameTimeSet)
+    {
+      vars.GameTimeSet = true;
+      return TimeSpan.FromSeconds(320); // 05:20 (5 * 60 + 20)
+    }
 }
 
 isLoading
@@ -551,3 +553,33 @@ exit
 {
     timer.IsGameTimePaused = true;
 }
+
+
+
+/*
+
+splits: just in case the ai version doesnt work because it can be dumb
+if (current.Cutscene == 589316655 && old.Cutscene == 0 && vars.Jaguar == false && settings["Jaguar"]) // Jaguar end cutscene split
+    {
+        vars.Jaguar = true;
+        return true;
+    }
+
+    if (current.Cutscene == 318879157 && old.Cutscene == 0 && vars.AmaruStart == false && settings["AmaruStart"]) // Last boss start cutscene split
+    {
+        vars.AmaruStart = true;
+        return true;
+    }
+
+    if (current.Cutscene == 4098904675 && old.Cutscene == 0 && vars.BreakGlass == false && settings["BreakGlass"]) // Break glass during tsunami cutscene split
+    {
+        vars.BreakGlass = true;
+        return true;
+    }
+
+    if (current.Cutscene == 2526376290 && old.Cutscene == 0 && vars.LavaSwim == false && settings["LavaSwim"]) //  After swimming in lava cutscene split
+    {
+        vars.LavaSwim = true;
+        return true;
+    }
+*/
